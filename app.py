@@ -6,6 +6,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 from datetime import datetime
 import time
+import pytz
 
 # Page configuration
 st.set_page_config(
@@ -100,9 +101,12 @@ placeholder = st.empty()
 events_placeholder = st.empty()
 stats_placeholder = st.empty()
 
+# Malaysia timezone
+malaysia_tz = pytz.timezone('Asia/Kuala_Lumpur')
+
 while True:
-    # Update datetime display
-    current_datetime = datetime.now().strftime("%A, %B %d, %Y • %I:%M:%S %p")
+    # Update datetime display with accurate Malaysia time
+    current_datetime = datetime.now(malaysia_tz).strftime("%A, %B %d, %Y • %I:%M:%S %p")
     datetime_placeholder.markdown(f"<div class='datetime-display'>{current_datetime}</div>", unsafe_allow_html=True)
     
     # Fetch data from Firebase
@@ -207,7 +211,7 @@ while True:
 
         st.markdown("---")
         
-        # ========== EMERGENCY BUTTON STATUS ==========
+        # ========== EMERGENCY BUTTON STATUS (FIXED) ==========
         st.subheader("🚨 Emergency Button Status")
         emergency_active = emergency_data.get('active', False)
         
@@ -215,7 +219,7 @@ while True:
         <div class="sensor-card" style="border-left: 4px solid {'#ff0000' if emergency_active else '#888888'};">
             <h4>Emergency Button</h4>
             <p style="font-size: 1.5em; color: {'#ff0000' if emergency_active else '#00ff00'}; font-weight: bold;">
-                {'🚨 PRESSED - EMERGENCY ACTIVE!' if emergency_active else '✓ Ready'}
+                {'🚨 EMERGENCY ACTIVATED!' if emergency_active else '🟢 Standby Mode'}
             </p>
         </div>
         """
@@ -223,11 +227,12 @@ while True:
 
         st.markdown("---")
 
-        # ========== NETWORK PERFORMANCE ==========
+        # ========== NETWORK PERFORMANCE TABLE (NO GRAPH) ==========
         st.subheader("📊 Network Performance")
         
         latency = network_data.get('current', 0)
-        timestamp = network_data.get('timestamp', datetime.now().strftime("%H:%M:%S"))
+        # Use accurate Malaysia time for timestamp
+        timestamp = datetime.now(malaysia_tz).strftime("%H:%M:%S")
         status = network_data.get('status', 'unknown')
         rssi = system_data.get('wifi', {}).get('rssi', 0)
         
@@ -264,56 +269,7 @@ while True:
                     entry['No'] = i + 1
         
         df_network = pd.DataFrame(st.session_state.network_history)
-        st.dataframe(df_network, use_container_width=True, height=300)
-        
-        if len(st.session_state.latency_history) == 0 or st.session_state.latency_history[-1]['time'] != timestamp:
-            st.session_state.latency_history.append({
-                'time': timestamp,
-                'latency': latency
-            })
-            
-            if len(st.session_state.latency_history) > 15:
-                st.session_state.latency_history.pop(0)
-        
-        df_latency_trend = pd.DataFrame(st.session_state.latency_history)
-        
-        fig_latency = go.Figure()
-        
-        fig_latency.add_trace(go.Scatter(
-            x=df_latency_trend['time'],
-            y=df_latency_trend['latency'],
-            mode='lines+markers',
-            name='Latency',
-            line=dict(color='#667eea', width=3, shape='spline'),
-            marker=dict(size=10, color='#667eea', symbol='circle'),
-            fill='tozeroy',
-            fillcolor='rgba(102, 126, 234, 0.2)'
-        ))
-        
-        fig_latency.add_hline(y=200, line_dash="dash", line_color="green", 
-                             annotation_text="Good (<200ms)", annotation_position="right")
-        fig_latency.add_hline(y=500, line_dash="dash", line_color="orange", 
-                             annotation_text="Fair (<500ms)", annotation_position="right")
-        
-        fig_latency.update_layout(
-            title="Latency",
-            xaxis_title="Time",
-            yaxis_title="Latency (ms)",
-            height=400,
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(30,33,48,1)',
-            font={'color': 'white', 'size': 12},
-            xaxis=dict(gridcolor='rgba(128,128,128,0.2)', showgrid=True),
-            yaxis=dict(
-                gridcolor='rgba(128,128,128,0.2)',
-                showgrid=True,
-                range=[0, max(df_latency_trend['latency'].max() + 100, 600)]
-            ),
-            hovermode='x unified',
-            showlegend=False
-        )
-        
-        st.plotly_chart(fig_latency, use_container_width=True, key=f"latency_{int(time.time() * 1000)}")
+        st.dataframe(df_network, use_container_width=True, height=400)
 
     with events_placeholder.container():
         st.markdown("---")

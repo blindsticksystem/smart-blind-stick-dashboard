@@ -5,18 +5,23 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
-import os
-from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
+import json
 
 # Initialize Firebase
 if not firebase_admin._apps:
-    cred = credentials.Certificate('firebase-key.json')
-    firebase_admin.initialize_app(cred, {
-        'databaseURL': os.getenv('FIREBASE_DATABASE_URL')
-    })
+    # Try to load from Streamlit secrets (for cloud deployment)
+    try:
+        firebase_config = dict(st.secrets["firebase_credentials"])
+        cred = credentials.Certificate(firebase_config)
+        firebase_admin.initialize_app(cred, {
+            'databaseURL': st.secrets["FIREBASE_DATABASE_URL"]
+        })
+    except:
+        # Fallback to local file (for local development)
+        cred = credentials.Certificate('firebase-key.json')
+        firebase_admin.initialize_app(cred, {
+            'databaseURL': "https://smartblindstick-42f49-default-rtdb.asia-southeast1.firebasedatabase.app"
+        })
 
 # Page config
 st.set_page_config(

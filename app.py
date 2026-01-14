@@ -52,6 +52,10 @@ st.markdown("""
         margin-bottom: 20px;
         font-weight: bold;
     }
+    /* IMPORTANT: Hide duplicate metrics */
+    [data-testid="stMetricValue"] {
+        display: block !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -106,6 +110,11 @@ while True:
         time.sleep(0.5)
         continue
     
+    # Calculate statistics ONCE
+    total_emergencies = len(emergency_events) if emergency_events else 0
+    total_obstacles = len(obstacle_events) if obstacle_events else 0
+    total_rf = len(rf_events) if rf_events else 0
+    
     # ALL CONTENT IN ONE CONTAINER
     with main_container.container():
         st.markdown("---")
@@ -122,7 +131,7 @@ while True:
 
         st.markdown("---")
 
-        # ========== SENSORS & ACTUATORS ==========
+        # ========== SENSORS & ACTUATORS =====
         col1, col2 = st.columns(2)
         
         with col1:
@@ -326,20 +335,14 @@ while True:
 
         st.markdown("---")
         
-        # ========== STATISTICS (FIXED - NO DUPLICATE) ==========
+        # ========== STATISTICS - SINGLE ROW ONLY ==========
         st.subheader("📈 Statistics Summary")
         
-        total_emergencies = len(emergency_events) if emergency_events else 0
-        total_obstacles = len(obstacle_events) if obstacle_events else 0
-        total_rf = len(rf_events) if rf_events else 0
+        # Create metrics in a single row
+        metric_col1, metric_col2, metric_col3 = st.columns(3)
         
-        stats_col1, stats_col2, stats_col3 = st.columns(3)
-        
-        with stats_col1:
-            st.metric("🚨 Emergency Alerts Triggered", total_emergencies)
-        with stats_col2:
-            st.metric("⚠️ Obstacles Detected", total_obstacles)
-        with stats_col3:
-            st.metric("📡 RF Events Captured", total_rf)
+        metric_col1.metric("🚨 Emergency Alerts Triggered", total_emergencies)
+        metric_col2.metric("⚠️ Obstacles Detected", total_obstacles)
+        metric_col3.metric("📡 RF Events Captured", total_rf)
 
     time.sleep(0.2)

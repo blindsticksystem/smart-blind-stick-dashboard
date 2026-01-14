@@ -84,9 +84,6 @@ def init_firebase():
 if 'network_history' not in st.session_state:
     st.session_state.network_history = []
 
-if 'latency_history' not in st.session_state:
-    st.session_state.latency_history = []
-
 # Get Firebase reference
 ref = init_firebase()
 
@@ -211,7 +208,7 @@ while True:
 
         st.markdown("---")
         
-        # ========== EMERGENCY BUTTON STATUS (FIXED) ==========
+        # ========== EMERGENCY BUTTON STATUS ==========
         st.subheader("🚨 Emergency Button Status")
         emergency_active = emergency_data.get('active', False)
         
@@ -227,11 +224,10 @@ while True:
 
         st.markdown("---")
 
-        # ========== NETWORK PERFORMANCE TABLE (NO GRAPH) ==========
+        # ========== NETWORK PERFORMANCE TABLE (SINGLE TABLE ONLY) ==========
         st.subheader("📊 Network Performance")
         
         latency = network_data.get('current', 0)
-        # Use accurate Malaysia time for timestamp
         timestamp = datetime.now(malaysia_tz).strftime("%H:%M:%S")
         status = network_data.get('status', 'unknown')
         rssi = system_data.get('wifi', {}).get('rssi', 0)
@@ -285,13 +281,11 @@ while True:
                 for key, event in emergency_events.items():
                     lat = event.get('latitude', '0')
                     lon = event.get('longitude', '0')
-                    city = event.get('city', 'Unknown')
                     
                     emergency_list.append({
                         'No': counter,
                         'Time': event.get('timestamp', 'N/A'),
                         'Location': f"{lat}, {lon}",
-                        'City': city,
                         'Status': event.get('status', 'N/A').upper(),
                         'Notification': '✓ Sent' if event.get('notificationSent', False) else '✗ Failed'
                     })

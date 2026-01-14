@@ -20,12 +20,6 @@ st.markdown("""
     .main {
         background-color: #0e1117;
     }
-    .stMetric {
-        background-color: #1e2130;
-        padding: 15px;
-        border-radius: 10px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
     .alert-card {
         background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
         padding: 20px;
@@ -332,17 +326,20 @@ while True:
 
         st.markdown("---")
         
-        # ========== STATISTICS ==========
+        # ========== STATISTICS (FIXED - NO DUPLICATE) ==========
         st.subheader("📈 Statistics Summary")
         
         total_emergencies = len(emergency_events) if emergency_events else 0
         total_obstacles = len(obstacle_events) if obstacle_events else 0
         total_rf = len(rf_events) if rf_events else 0
         
-        col1, col2, col3 = st.columns(3)
+        stats_col1, stats_col2, stats_col3 = st.columns(3)
         
-        col1.metric("🚨 Emergency Alerts Triggered", total_emergencies)
-        col2.metric("⚠️ Obstacles Detected", total_obstacles)
-        col3.metric("📡 RF Events Captured", total_rf)
+        with stats_col1:
+            st.metric("🚨 Emergency Alerts Triggered", total_emergencies)
+        with stats_col2:
+            st.metric("⚠️ Obstacles Detected", total_obstacles)
+        with stats_col3:
+            st.metric("📡 RF Events Captured", total_rf)
 
     time.sleep(0.2)

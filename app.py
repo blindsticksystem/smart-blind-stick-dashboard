@@ -2,8 +2,6 @@ import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, db
 import pandas as pd
-import plotly.graph_objects as go
-import plotly.express as px
 from datetime import datetime
 import time
 import pytz
@@ -63,46 +61,42 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Initialize Firebase - UPDATED FOR BOTH LOCAL AND CLOUD
+# Initialize Firebase
 @st.cache_resource
 def init_firebase():
     if not firebase_admin._apps:
         try:
-            # Try Streamlit Cloud secrets first
             firebase_config = dict(st.secrets["firebase_credentials"])
             firebase_admin.initialize_app(credentials.Certificate(firebase_config), {
                 'databaseURL': st.secrets["FIREBASE_DATABASE_URL"]
             })
         except:
-            # Fallback to local file for development
             firebase_admin.initialize_app(credentials.Certificate('firebase-key.json'), {
                 'databaseURL': 'https://smartblindstick-42f49-default-rtdb.asia-southeast1.firebasedatabase.app'
             })
     return db.reference('/')
 
-# Initialize session state for network history
+# Initialize session state
 if 'network_history' not in st.session_state:
     st.session_state.network_history = []
 
 # Get Firebase reference
 ref = init_firebase()
 
-# Dashboard Title
-st.markdown("<h1>🦯 Smart Blind Stick Dashboard</h1>", unsafe_allow_html=True)
-
-# Create placeholder for datetime that updates
-datetime_placeholder = st.empty()
-
-# Auto-refresh placeholder
-placeholder = st.empty()
-events_placeholder = st.empty()
-stats_placeholder = st.empty()
-
 # Malaysia timezone
 malaysia_tz = pytz.timezone('Asia/Kuala_Lumpur')
 
+# Dashboard Title
+st.markdown("<h1>🦯 Smart Blind Stick Dashboard</h1>", unsafe_allow_html=True)
+
+# Datetime placeholder
+datetime_placeholder = st.empty()
+
+# Single main placeholder for ALL content
+main_container = st.empty()
+
 while True:
-    # Update datetime display with accurate Malaysia time
+    # Update datetime
     current_datetime = datetime.now(malaysia_tz).strftime("%A, %B %d, %Y • %I:%M:%S %p")
     datetime_placeholder.markdown(f"<div class='datetime-display'>{current_datetime}</div>", unsafe_allow_html=True)
     
@@ -118,10 +112,11 @@ while True:
         time.sleep(0.5)
         continue
     
-    with placeholder.container():
+    # ALL CONTENT IN ONE CONTAINER
+    with main_container.container():
         st.markdown("---")
         
-        # ========== EMERGENCY ALERT SECTION ==========
+        # ========== EMERGENCY ALERT ==========
         emergency_data = system_data.get('emergency', {})
         if emergency_data.get('active', False):
             st.markdown("""
@@ -144,29 +139,27 @@ while True:
             sensor1_distance = sensor1.get('distance', 0)
             sensor1_detecting = sensor1.get('detecting', False)
             
-            sensor1_html = f"""
+            st.markdown(f"""
             <div class="sensor-card">
                 <h4>Sensor 1</h4>
                 <p style="font-size: 1.3em; color: {'#ff0000' if sensor1_detecting else '#00ff00'};">
                     {sensor1_distance} cm {'⚠️ DETECTING' if sensor1_detecting else '✓ Clear'}
                 </p>
             </div>
-            """
-            st.markdown(sensor1_html, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
             
             sensor2 = sensors.get('sensor2', {})
             sensor2_distance = sensor2.get('distance', 0)
             sensor2_detecting = sensor2.get('detecting', False)
             
-            sensor2_html = f"""
+            st.markdown(f"""
             <div class="sensor-card">
                 <h4>Sensor 2</h4>
                 <p style="font-size: 1.3em; color: {'#ff0000' if sensor2_detecting else '#00ff00'};">
                     {sensor2_distance} cm {'⚠️ DETECTING' if sensor2_detecting else '✓ Clear'}
                 </p>
             </div>
-            """
-            st.markdown(sensor2_html, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
         
         with col2:
             st.subheader("🔊 Actuators Status")
@@ -176,63 +169,57 @@ while True:
             buzzer_active = actuators.get('buzzer', False)
             vibration_active = actuators.get('vibration', False)
             
-            rf_html = f"""
+            st.markdown(f"""
             <div class="sensor-card">
                 <h4>RF Receiver</h4>
                 <p style="font-size: 1.3em; color: {'#00ff00' if rf_active else '#888888'};">
                     {'📡 SIGNAL DETECTED' if rf_active else '📡 No Signal'}
                 </p>
             </div>
-            """
-            st.markdown(rf_html, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
             
-            buzzer_html = f"""
+            st.markdown(f"""
             <div class="sensor-card">
                 <h4>Buzzer</h4>
                 <p style="font-size: 1.3em; color: {'#00ff00' if buzzer_active else '#888888'};">
                     {'🔊 ACTIVE' if buzzer_active else '🔇 Inactive'}
                 </p>
             </div>
-            """
-            st.markdown(buzzer_html, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
             
-            vibration_html = f"""
+            st.markdown(f"""
             <div class="sensor-card">
                 <h4>Vibration Motor</h4>
                 <p style="font-size: 1.3em; color: {'#00ff00' if vibration_active else '#888888'};">
                     {'📳 ACTIVE' if vibration_active else '📴 Inactive'}
                 </p>
             </div>
-            """
-            st.markdown(vibration_html, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
 
         st.markdown("---")
         
-        # ========== EMERGENCY BUTTON STATUS ==========
+        # ========== EMERGENCY BUTTON ==========
         st.subheader("🚨 Emergency Button Status")
         emergency_active = emergency_data.get('active', False)
         
-        emergency_btn_html = f"""
+        st.markdown(f"""
         <div class="sensor-card" style="border-left: 4px solid {'#ff0000' if emergency_active else '#888888'};">
             <h4>Emergency Button</h4>
             <p style="font-size: 1.5em; color: {'#ff0000' if emergency_active else '#00ff00'}; font-weight: bold;">
                 {'🚨 EMERGENCY ACTIVATED!' if emergency_active else '🟢 Standby Mode'}
             </p>
         </div>
-        """
-        st.markdown(emergency_btn_html, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
         st.markdown("---")
 
-        # ========== NETWORK PERFORMANCE TABLE (SINGLE TABLE ONLY) ==========
+        # ========== NETWORK PERFORMANCE ==========
         st.subheader("📊 Network Performance")
         
         latency = network_data.get('current', 0)
         timestamp = datetime.now(malaysia_tz).strftime("%H:%M:%S")
         status = network_data.get('status', 'unknown')
         rssi = system_data.get('wifi', {}).get('rssi', 0)
-        
-        emergency_active = emergency_data.get('active', False)
         
         event_type = "System Idle"
         if emergency_active:
@@ -267,8 +254,9 @@ while True:
         df_network = pd.DataFrame(st.session_state.network_history)
         st.dataframe(df_network, use_container_width=True, height=400)
 
-    with events_placeholder.container():
         st.markdown("---")
+        
+        # ========== EVENT HISTORY ==========
         st.subheader("📋 Event History")
         
         tab1, tab2, tab3 = st.tabs(["🚨 Emergency", "⚠️ Obstacles", "📡 RF Events"])
@@ -342,8 +330,9 @@ while True:
             else:
                 st.info("No RF events recorded")
 
-    with stats_placeholder.container():
         st.markdown("---")
+        
+        # ========== STATISTICS ==========
         st.subheader("📈 Statistics Summary")
         
         total_emergencies = len(emergency_events) if emergency_events else 0

@@ -367,4 +367,4 @@ while True:
         metric_col2.metric("⚠️ Obstacles Detected", total_obstacles)
         metric_col3.metric("📡 RF Events Captured", total_rf)
 
-    time.sleep(0.2)
+    time.sleep(0.1)

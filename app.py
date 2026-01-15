@@ -5,7 +5,6 @@ import pandas as pd
 from datetime import datetime
 import time
 import pytz
-import random
 
 # Page configuration
 st.set_page_config(
@@ -89,24 +88,6 @@ datetime_placeholder = st.empty()
 
 # Single main placeholder for ALL content
 main_container = st.empty()
-
-# Function to calculate realistic packet size based on event type
-def calculate_packet_size(event_type, sensor1_detecting, sensor2_detecting, emergency_active, rf_active):
-    """Calculate realistic packet size in bytes based on data being sent"""
-    base_size = 180  # Base JSON overhead + timestamp + status
-    
-    if emergency_active:
-        # Emergency: GPS coordinates + location + notification data
-        return base_size + 250  # ~430 bytes
-    elif sensor1_detecting or sensor2_detecting:
-        # Sensor data: 2 sensors + distance values
-        return base_size + 120  # ~300 bytes
-    elif rf_active:
-        # RF event: signal status
-        return base_size + 80   # ~260 bytes
-    else:
-        # System monitoring: basic status only
-        return base_size + 60   # ~240 bytes
 
 while True:
     # Update datetime
@@ -231,15 +212,16 @@ while True:
 
         st.markdown("---")
 
-        # ========== NETWORK PERFORMANCE ==========
+        # ========== NETWORK PERFORMANCE - REAL DATA FROM ESP32 ==========
         st.subheader("📊 Network Performance")
         
-        # REALISTIC LATENCY WITH PROPER VARIATION: 35-145ms
-        latency = random.randint(35, 145)  # Directly generate random latency
+        # GET REAL MEASUREMENTS FROM FIREBASE (sent by ESP32)
+        latency = network_data.get('current', 0)  # REAL latency measured by ESP32
+        packet_size = network_data.get('packet_size', 0)  # REAL packet size from ESP32
         
         timestamp = datetime.now(malaysia_tz).strftime("%H:%M:%S")
-        status = network_data.get('status', 'success')
-        rssi = system_data.get('wifi', {}).get('rssi', random.randint(-65, -45))  # -65 to -45 dBm
+        status = network_data.get('status', 'unknown')
+        rssi = system_data.get('wifi', {}).get('rssi', 0)  # REAL RSSI from ESP32
         
         # Determine event type
         event_type = "System Idle"
@@ -252,26 +234,26 @@ while True:
         else:
             event_type = "System Monitoring"
         
-        # REALISTIC PACKET SIZE based on event type
-        packet_size = calculate_packet_size(event_type, sensor1_detecting, sensor2_detecting, emergency_active, rf_active)
-        
         new_entry = {
             'No': len(st.session_state.network_history) + 1,
             'Timestamp': timestamp,
             'Event Type': event_type,
-            'Latency (ms)': latency,
-            'RTT (ms)': latency * 2,  # RTT = Round Trip Time (2x latency)
-            'Signal Strength (dBm)': rssi,  # -65 to -45 dBm range
-            'Packet Size (bytes)': packet_size,  # Varies by event type
+            'Latency (ms)': latency,  # REAL from ESP32
+            'RTT (ms)': latency * 2,  # RTT = 2x latency (correct formula)
+            'Signal Strength (dBm)': rssi,  # REAL from ESP32
+            'Packet Size (bytes)': packet_size,  # REAL from ESP32
             'Transmission Result': status.upper(),
             'Network Status': 'Connected' if status == 'success' else 'Failed'
         }
         
+        # Only add if timestamp changed (avoid duplicates)
         if len(st.session_state.network_history) == 0 or st.session_state.network_history[-1]['Timestamp'] != timestamp:
             st.session_state.network_history.append(new_entry)
             
+            # Keep only last 20 entries
             if len(st.session_state.network_history) > 20:
                 st.session_state.network_history.pop(0)
+                # Renumber entries
                 for i, entry in enumerate(st.session_state.network_history):
                     entry['No'] = i + 1
         
@@ -365,4 +347,4 @@ while True:
         metric_col2.metric("⚠️ Obstacles Detected", total_obstacles)
         metric_col3.metric("📡 RF Events Captured", total_rf)
 
-    time.sleep(0.1)
+    time.sleep(0.2)

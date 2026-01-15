@@ -5,7 +5,6 @@ import pandas as pd
 from datetime import datetime
 import time
 import pytz
-import random
 
 # Page configuration
 st.set_page_config(
@@ -90,24 +89,6 @@ datetime_placeholder = st.empty()
 # Single main placeholder for ALL content
 main_container = st.empty()
 
-# Function to calculate realistic packet size based on event type
-def calculate_packet_size(event_type, sensor1_detecting, sensor2_detecting, emergency_active, rf_active):
-    """Calculate realistic packet size in bytes based on data being sent"""
-    base_size = 180  # Base JSON overhead + timestamp + status
-    
-    if emergency_active:
-        # Emergency: GPS coordinates + location + notification data
-        return base_size + 250  # ~430 bytes
-    elif sensor1_detecting or sensor2_detecting:
-        # Sensor data: 2 sensors + distance values
-        return base_size + 120  # ~300 bytes
-    elif rf_active:
-        # RF event: signal status
-        return base_size + 80   # ~260 bytes
-    else:
-        # System monitoring: basic status only
-        return base_size + 60   # ~240 bytes
-
 while True:
     # Update datetime
     current_datetime = datetime.now(malaysia_tz).strftime("%A, %B %d, %Y • %I:%M:%S %p")
@@ -117,6 +98,7 @@ while True:
     try:
         system_data = ref.child('system/status').get() or {}
         network_data = ref.child('network/latency').get() or {}
+        performance_data = ref.child('network/performance').get() or {}
         emergency_events = ref.child('events/emergency').get() or {}
         obstacle_events = ref.child('events/obstacles').get() or {}
         rf_events = ref.child('events/rf').get() or {}
@@ -231,38 +213,27 @@ while True:
 
         st.markdown("---")
 
-        # ========== NETWORK PERFORMANCE ==========
+        # ========== NETWORK PERFORMANCE (REAL MEASUREMENTS) ==========
         st.subheader("📊 Network Performance")
         
-        # REALISTIC LATENCY WITH PROPER VARIATION: 35-145ms
-        latency = random.randint(35, 145)  # Directly generate random latency
-        
+        # REAL measurements from ESP32
+        latency = network_data.get('current', 0)  # Real latency from ESP32
         timestamp = datetime.now(malaysia_tz).strftime("%H:%M:%S")
-        status = network_data.get('status', 'success')
-        rssi = system_data.get('wifi', {}).get('rssi', random.randint(-65, -45))  # -65 to -45 dBm
+        status = network_data.get('status', 'unknown')
         
-        # Determine event type
-        event_type = "System Idle"
-        if emergency_active:
-            event_type = "GPS Location Update"
-        elif sensor1_detecting or sensor2_detecting:
-            event_type = f"Sensor {'1' if sensor1_detecting else '2'} Reading"
-        elif rf_active:
-            event_type = "RF Signal Received"
-        else:
-            event_type = "System Monitoring"
-        
-        # REALISTIC PACKET SIZE based on event type
-        packet_size = calculate_packet_size(event_type, sensor1_detecting, sensor2_detecting, emergency_active, rf_active)
+        # REAL data from Firebase
+        event_type = performance_data.get('eventType', 'System Idle')
+        packet_size = performance_data.get('packetSize', 240)
+        rssi = performance_data.get('rssi', system_data.get('wifi', {}).get('rssi', -50))
         
         new_entry = {
             'No': len(st.session_state.network_history) + 1,
             'Timestamp': timestamp,
             'Event Type': event_type,
-            'Latency (ms)': latency,
-            'RTT (ms)': latency * 2,  # RTT = Round Trip Time (2x latency)
-            'Signal Strength (dBm)': rssi,  # -65 to -45 dBm range
-            'Packet Size (bytes)': packet_size,  # Varies by event type
+            'Latency (ms)': latency,  # REAL from ESP32
+            'RTT (ms)': latency * 2,  # RTT = Round Trip Time
+            'Signal Strength (dBm)': rssi,  # REAL WiFi RSSI
+            'Packet Size (bytes)': packet_size,  # REAL based on event
             'Transmission Result': status.upper(),
             'Network Status': 'Connected' if status == 'success' else 'Failed'
         }

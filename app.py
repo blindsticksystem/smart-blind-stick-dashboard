@@ -52,10 +52,6 @@ st.markdown("""
         margin-bottom: 20px;
         font-weight: bold;
     }
-    /* IMPORTANT: Hide duplicate metrics */
-    [data-testid="stMetricValue"] {
-        display: block !important;
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -219,10 +215,12 @@ while True:
         # ========== NETWORK PERFORMANCE ==========
         st.subheader("📊 Network Performance")
         
+        # Get REAL latency from Firebase
         latency = network_data.get('current', 0)
         timestamp = datetime.now(malaysia_tz).strftime("%H:%M:%S")
         status = network_data.get('status', 'unknown')
         rssi = system_data.get('wifi', {}).get('rssi', 0)
+        packet_size = network_data.get('packet_size', 0)  # Get actual packet size
         
         event_type = "System Idle"
         if emergency_active:
@@ -239,9 +237,9 @@ while True:
             'Timestamp': timestamp,
             'Event Type': event_type,
             'Latency (ms)': latency,
-            'RTT (ms)': latency * 2,
-            'Signal Strength (dBm)': rssi,
-            'Packet Size (bytes)': 512,
+            'RTT (ms)': latency * 2,  # RTT = 2x Latency (CORRECT!)
+            'Signal Strength (dBm)': rssi,  # Already has negative sign
+            'Packet Size (bytes)': packet_size,  # Real size from ESP32
             'Transmission Result': status.upper(),
             'Network Status': 'Connected' if status == 'success' else 'Failed'
         }
@@ -335,10 +333,9 @@ while True:
 
         st.markdown("---")
         
-        # ========== STATISTICS - SINGLE ROW ONLY ==========
+        # ========== STATISTICS ==========
         st.subheader("📈 Statistics Summary")
         
-        # Create metrics in a single row
         metric_col1, metric_col2, metric_col3 = st.columns(3)
         
         metric_col1.metric("🚨 Emergency Alerts Triggered", total_emergencies)

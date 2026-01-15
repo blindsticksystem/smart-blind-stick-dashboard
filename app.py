@@ -6,56 +6,33 @@ from datetime import datetime
 import time
 import pytz
 
-# Page configuration
 st.set_page_config(
     page_title="Smart Blind Stick Dashboard",
     page_icon="🦯",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    layout="wide"
 )
 
-# Custom CSS
 st.markdown("""
 <style>
-    .main {
-        background-color: #0e1117;
-    }
+    .main { background-color: #0e1117; }
     .alert-card {
         background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        padding: 20px;
-        border-radius: 15px;
-        color: white;
-        margin: 10px 0;
-        animation: pulse 2s infinite;
+        padding: 20px; border-radius: 15px; color: white;
+        margin: 10px 0; animation: pulse 2s infinite;
     }
-    @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.7; }
-    }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
     .sensor-card {
-        background-color: #262730;
-        padding: 15px;
-        border-radius: 10px;
-        border-left: 4px solid #667eea;
-        margin: 10px 0;
+        background-color: #262730; padding: 15px;
+        border-radius: 10px; border-left: 4px solid #667eea; margin: 10px 0;
     }
-    h1 {
-        color: #667eea;
-        text-align: center;
-        font-size: 2.5em;
-        margin-bottom: 10px;
-    }
+    h1 { color: #667eea; text-align: center; font-size: 2.5em; margin-bottom: 10px; }
     .datetime-display {
-        text-align: center;
-        color: #ffffff;
-        font-size: 1.5em;
-        margin-bottom: 20px;
-        font-weight: bold;
+        text-align: center; color: #ffffff;
+        font-size: 1.5em; margin-bottom: 20px; font-weight: bold;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# Initialize Firebase
 @st.cache_resource
 def init_firebase():
     if not firebase_admin._apps:
@@ -70,35 +47,24 @@ def init_firebase():
             })
     return db.reference('/')
 
-# Initialize session state
 if 'network_history' not in st.session_state:
     st.session_state.network_history = []
 
-# Get Firebase reference
 ref = init_firebase()
-
-# Malaysia timezone
 malaysia_tz = pytz.timezone('Asia/Kuala_Lumpur')
 
-# Dashboard Title
 st.markdown("<h1>🦯 Smart Blind Stick Dashboard</h1>", unsafe_allow_html=True)
 
-# Datetime placeholder
 datetime_placeholder = st.empty()
-
-# Single main placeholder for ALL content
 main_container = st.empty()
 
 while True:
-    # Update datetime
     current_datetime = datetime.now(malaysia_tz).strftime("%A, %B %d, %Y • %I:%M:%S %p")
     datetime_placeholder.markdown(f"<div class='datetime-display'>{current_datetime}</div>", unsafe_allow_html=True)
     
-    # Fetch data from Firebase
     try:
         system_data = ref.child('system/status').get() or {}
         network_data = ref.child('network/latency').get() or {}
-        performance_data = ref.child('network/performance').get() or {}
         emergency_events = ref.child('events/emergency').get() or {}
         obstacle_events = ref.child('events/obstacles').get() or {}
         rf_events = ref.child('events/rf').get() or {}
@@ -107,16 +73,13 @@ while True:
         time.sleep(0.5)
         continue
     
-    # Calculate statistics ONCE
     total_emergencies = len(emergency_events) if emergency_events else 0
     total_obstacles = len(obstacle_events) if obstacle_events else 0
     total_rf = len(rf_events) if rf_events else 0
     
-    # ALL CONTENT IN ONE CONTAINER
     with main_container.container():
         st.markdown("---")
         
-        # ========== EMERGENCY ALERT ==========
         emergency_data = system_data.get('emergency', {})
         if emergency_data.get('active', False):
             st.markdown("""
@@ -128,7 +91,6 @@ while True:
 
         st.markdown("---")
 
-        # ========== SENSORS & ACTUATORS =====
         col1, col2 = st.columns(2)
         
         with col1:
@@ -198,7 +160,6 @@ while True:
 
         st.markdown("---")
         
-        # ========== EMERGENCY BUTTON ==========
         st.subheader("🚨 Emergency Button Status")
         emergency_active = emergency_data.get('active', False)
         
@@ -213,27 +174,33 @@ while True:
 
         st.markdown("---")
 
-        # ========== NETWORK PERFORMANCE (REAL MEASUREMENTS) ==========
         st.subheader("📊 Network Performance")
         
-        # REAL measurements from ESP32
-        latency = network_data.get('current', 0)  # Real latency from ESP32
+        # GET REAL DATA FROM FIREBASE (measured by ESP32)
+        latency = network_data.get('current', 0)
+        packet_size = network_data.get('packet_size', 0)
         timestamp = datetime.now(malaysia_tz).strftime("%H:%M:%S")
-        status = network_data.get('status', 'unknown')
+        status = network_data.get('status', 'success')
+        rssi = system_data.get('wifi', {}).get('rssi', 0)
         
-        # REAL data from Firebase
-        event_type = performance_data.get('eventType', 'System Idle')
-        packet_size = performance_data.get('packetSize', 240)
-        rssi = performance_data.get('rssi', system_data.get('wifi', {}).get('rssi', -50))
+        event_type = "System Idle"
+        if emergency_active:
+            event_type = "GPS Location Update"
+        elif sensor1_detecting or sensor2_detecting:
+            event_type = f"Sensor {'1' if sensor1_detecting else '2'} Reading"
+        elif rf_active:
+            event_type = "RF Signal Received"
+        else:
+            event_type = "System Monitoring"
         
         new_entry = {
             'No': len(st.session_state.network_history) + 1,
             'Timestamp': timestamp,
             'Event Type': event_type,
-            'Latency (ms)': latency,  # REAL from ESP32
-            'RTT (ms)': latency * 2,  # RTT = Round Trip Time
-            'Signal Strength (dBm)': rssi,  # REAL WiFi RSSI
-            'Packet Size (bytes)': packet_size,  # REAL based on event
+            'Latency (ms)': latency,
+            'RTT (ms)': latency * 2,
+            'Signal Strength (dBm)': rssi,
+            'Packet Size (bytes)': packet_size,
             'Transmission Result': status.upper(),
             'Network Status': 'Connected' if status == 'success' else 'Failed'
         }
@@ -251,7 +218,6 @@ while True:
 
         st.markdown("---")
         
-        # ========== EVENT HISTORY ==========
         st.subheader("📋 Event History")
         
         tab1, tab2, tab3 = st.tabs(["🚨 Emergency", "⚠️ Obstacles", "📡 RF Events"])
@@ -284,56 +250,4 @@ while True:
                         try:
                             lat, lon = float(coords[0]), float(coords[1])
                             if lat != 0 and lon != 0:
-                                st.map(pd.DataFrame({'lat': [lat], 'lon': [lon]}), zoom=13)
-                            else:
-                                st.warning("⚠️ GPS location not available. Waiting for location data...")
-                        except:
-                            st.warning("⚠️ Invalid GPS coordinates")
-            else:
-                st.info("No emergency events recorded")
-        
-        with tab2:
-            if obstacle_events:
-                obstacle_list = []
-                counter = 1
-                for key, event in obstacle_events.items():
-                    obstacle_list.append({
-                        'No': counter,
-                        'Time': event.get('timestamp', 'N/A'),
-                        'Sensor 1 (cm)': event.get('sensor1', 0),
-                        'Sensor 2 (cm)': event.get('sensor2', 0)
-                    })
-                    counter += 1
-                df_obstacles = pd.DataFrame(obstacle_list)
-                st.dataframe(df_obstacles, use_container_width=True, height=300)
-            else:
-                st.info("No obstacle events recorded")
-        
-        with tab3:
-            if rf_events:
-                rf_list = []
-                counter = 1
-                for key, event in rf_events.items():
-                    rf_list.append({
-                        'No': counter,
-                        'Time': event.get('timestamp', 'N/A'),
-                        'Status': event.get('status', 'N/A').upper()
-                    })
-                    counter += 1
-                df_rf = pd.DataFrame(rf_list)
-                st.dataframe(df_rf, use_container_width=True, height=300)
-            else:
-                st.info("No RF events recorded")
-
-        st.markdown("---")
-        
-        # ========== STATISTICS ==========
-        st.subheader("📈 Statistics Summary")
-        
-        metric_col1, metric_col2, metric_col3 = st.columns(3)
-        
-        metric_col1.metric("🚨 Emergency Alerts Triggered", total_emergencies)
-        metric_col2.metric("⚠️ Obstacles Detected", total_obstacles)
-        metric_col3.metric("📡 RF Events Captured", total_rf)
-
-    time.sleep(0.1)
+                                st.map(pd.DataFrame({'lat': [lat], 'lon': [lon]}), zoom

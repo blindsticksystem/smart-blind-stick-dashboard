@@ -127,7 +127,6 @@ while True:
 
         st.markdown("---")
 
-khadijah, [1/30/2026 9:37 AM]
 # ========== SENSORS & ACTUATORS =====
         col1, col2 = st.columns(2)
         
@@ -213,7 +212,6 @@ khadijah, [1/30/2026 9:37 AM]
 
         st.markdown("---")
 
-khadijah, [1/30/2026 9:37 AM]
 # ========== NETWORK PERFORMANCE - REAL DATA FROM ESP32 ==========
         st.subheader("📊 Network Performance")
         
@@ -262,7 +260,6 @@ khadijah, [1/30/2026 9:37 AM]
         df_network = pd.DataFrame(st.session_state.network_history)
         st.dataframe(df_network, use_container_width=True, height=400)
 
-khadijah, [1/30/2026 9:37 AM]
 st.markdown("---")
         
         # ========== EVENT HISTORY ==========

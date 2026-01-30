@@ -1,4 +1,3 @@
-khadijah, [1/30/2026 9:37 AM]
 import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, db

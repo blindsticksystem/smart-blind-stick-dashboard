@@ -127,8 +127,8 @@ while True:
 
         st.markdown("---")
 
-        # ========== SENSORS & ACTUATORS =====
-        col1, col2 = st.columns(2)
+        # ========== SENSORS, ACTUATORS & EMERGENCY BUTTON IN ONE ROW =====
+        col1, col2, col3 = st.columns(3)
         
         with col1:
             st.subheader("🎯 Ultrasonic Sensors")
@@ -195,20 +195,18 @@ while True:
             </div>
             """, unsafe_allow_html=True)
 
-        st.markdown("---")
-        
-        # ========== EMERGENCY BUTTON ==========
-        st.subheader("🚨 Emergency Button Status")
-        emergency_active = emergency_data.get('active', False)
-        
-        st.markdown(f"""
-        <div class="sensor-card" style="border-left: 4px solid {'#ff0000' if emergency_active else '#888888'};">
-            <h4>Emergency Button</h4>
-            <p style="font-size: 1.5em; color: {'#ff0000' if emergency_active else '#00ff00'}; font-weight: bold;">
-                {'🚨 EMERGENCY ACTIVATED!' if emergency_active else '🟢 Standby Mode'}
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
+        with col3:
+            st.subheader("🚨 Emergency Button Status")
+            emergency_active = emergency_data.get('active', False)
+            
+            st.markdown(f"""
+            <div class="sensor-card" style="border-left: 4px solid {'#ff0000' if emergency_active else '#888888'};">
+                <h4>Emergency Button</h4>
+                <p style="font-size: 1.5em; color: {'#ff0000' if emergency_active else '#00ff00'}; font-weight: bold;">
+                    {'🚨 EMERGENCY ACTIVATED!' if emergency_active else '🟢 Standby Mode'}
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
 
         st.markdown("---")
 

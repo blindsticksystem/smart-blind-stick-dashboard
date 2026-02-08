@@ -52,10 +52,6 @@ st.markdown("""
         margin-bottom: 20px;
         font-weight: bold;
     }
-    /* Hide duplicate metrics */
-    [data-testid="stMetric"]:nth-child(n+4) {
-        display: none !important;
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -93,6 +89,9 @@ datetime_placeholder = st.empty()
 # Single main placeholder for ALL content
 main_container = st.empty()
 
+# STATISTICS PLACEHOLDER - SEPARATE FROM MAIN CONTAINER
+statistics_placeholder = st.empty()
+
 while True:
     # Update datetime
     current_datetime = datetime.now(malaysia_tz).strftime("%A, %B %d, %Y • %I:%M:%S %p")
@@ -115,7 +114,7 @@ while True:
     total_obstacles = len(obstacle_events) if obstacle_events else 0
     total_rf = len(rf_events) if rf_events else 0
     
-    # ALL CONTENT IN ONE CONTAINER
+    # ALL CONTENT IN ONE CONTAINER (WITHOUT STATISTICS)
     with main_container.container():
         
         # ========== EMERGENCY ALERT ==========
@@ -217,12 +216,12 @@ while True:
         st.subheader("📊 Network Performance")
         
         # GET REAL MEASUREMENTS FROM FIREBASE (sent by ESP32)
-        latency = network_data.get('current', 0)  # REAL latency measured by ESP32
-        packet_size = network_data.get('packet_size', 0)  # REAL packet size from ESP32
+        latency = network_data.get('current', 0)
+        packet_size = network_data.get('packet_size', 0)
         
         timestamp = datetime.now(malaysia_tz).strftime("%H:%M:%S")
         status = network_data.get('status', 'unknown')
-        rssi = system_data.get('wifi', {}).get('rssi', 0)  # REAL RSSI from ESP32
+        rssi = system_data.get('wifi', {}).get('rssi', 0)
         
         # Determine event type
         event_type = "System Idle"
@@ -239,24 +238,20 @@ while True:
             'No': len(st.session_state.network_history) + 1,
             'Timestamp': timestamp,
             'Event Type': event_type,
-            'Latency (ms)': latency,  # REAL from ESP32
-            'RTT (ms)': latency * 2,  # RTT = 2x latency (correct formula)
-            'Signal Strength (dBm)': rssi,  # REAL from ESP32
-            'Packet Size (bytes)': packet_size,  # REAL from ESP32
+            'Latency (ms)': latency,
+            'RTT (ms)': latency * 2,
+            'Signal Strength (dBm)': rssi,
+            'Packet Size (bytes)': packet_size,
             'Transmission Result': status.upper(),
             'Network Status': 'Connected' if status == 'success' else 'Failed'
         }
         
-        # Only add if timestamp changed (avoid duplicates)
         if len(st.session_state.network_history) == 0 or st.session_state.network_history[-1]['Timestamp'] != timestamp:
-            # INSERT AT THE BEGINNING (index 0) instead of append
             st.session_state.network_history.insert(0, new_entry)
             
-            # Keep only last 20 entries
             if len(st.session_state.network_history) > 20:
-                st.session_state.network_history.pop()  # Remove from end
+                st.session_state.network_history.pop()
                 
-            # Renumber entries (latest = 1, oldest = max)
             for i, entry in enumerate(st.session_state.network_history):
                 entry['No'] = i + 1
         
@@ -275,7 +270,6 @@ while True:
                 emergency_list = []
                 counter = 1
                 
-                # Convert to list and REVERSE order (latest first)
                 events_items = list(emergency_events.items())
                 events_items.reverse()
                 
@@ -296,13 +290,12 @@ while True:
                 st.dataframe(df_emergency, use_container_width=True, height=300)
                 
                 if emergency_list:
-                    latest = emergency_list[0]  # First item is now latest
+                    latest = emergency_list[0]
                     coords = latest['Location'].split(', ')
                     if len(coords) == 2:
                         try:
                             lat, lon = float(coords[0]), float(coords[1])
                             if lat != 0 and lon != 0:
-                                # Add Google Maps button
                                 google_maps_url = f"https://www.google.com/maps?q={lat},{lon}"
                                 st.markdown(f"""
                                 <a href="{google_maps_url}" target="_blank">
@@ -334,7 +327,6 @@ while True:
                 obstacle_list = []
                 counter = 1
                 
-                # Convert to list and REVERSE order (latest first)
                 events_items = list(obstacle_events.items())
                 events_items.reverse()
                 
@@ -357,7 +349,6 @@ while True:
                 rf_list = []
                 counter = 1
                 
-                # Convert to list and REVERSE order (latest first)
                 events_items = list(rf_events.items())
                 events_items.reverse()
                 
@@ -375,8 +366,9 @@ while True:
                 st.info("No RF events recorded")
 
         st.markdown("---")
-        
-        # ========== STATISTICS (ONLY ONCE) ==========
+    
+    # ========== STATISTICS - OUTSIDE MAIN CONTAINER (RENDERED ONCE) ==========
+    with statistics_placeholder.container():
         st.subheader("📈 Statistics Summary")
         
         metric_col1, metric_col2, metric_col3 = st.columns(3)

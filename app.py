@@ -113,7 +113,6 @@ while True:
     
     # ALL CONTENT IN ONE CONTAINER
     with main_container.container():
-        st.markdown("---")
         
         # ========== EMERGENCY ALERT ==========
         emergency_data = system_data.get('emergency', {})

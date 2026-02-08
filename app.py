@@ -245,14 +245,16 @@ while True:
         
         # Only add if timestamp changed (avoid duplicates)
         if len(st.session_state.network_history) == 0 or st.session_state.network_history[-1]['Timestamp'] != timestamp:
-            st.session_state.network_history.append(new_entry)
+            # INSERT AT THE BEGINNING (index 0) instead of append
+            st.session_state.network_history.insert(0, new_entry)
             
             # Keep only last 20 entries
             if len(st.session_state.network_history) > 20:
-                st.session_state.network_history.pop(0)
-                # Renumber entries
-                for i, entry in enumerate(st.session_state.network_history):
-                    entry['No'] = i + 1
+                st.session_state.network_history.pop()  # Remove from end
+                
+            # Renumber entries (latest = 1, oldest = max)
+            for i, entry in enumerate(st.session_state.network_history):
+                entry['No'] = i + 1
         
         df_network = pd.DataFrame(st.session_state.network_history)
         st.dataframe(df_network, use_container_width=True, height=400)
@@ -269,7 +271,11 @@ while True:
                 emergency_list = []
                 counter = 1
                 
-                for key, event in emergency_events.items():
+                # Convert to list and REVERSE order (latest first)
+                events_items = list(emergency_events.items())
+                events_items.reverse()
+                
+                for key, event in events_items:
                     lat = event.get('latitude', '0')
                     lon = event.get('longitude', '0')
                     
@@ -286,7 +292,7 @@ while True:
                 st.dataframe(df_emergency, use_container_width=True, height=300)
                 
                 if emergency_list:
-                    latest = emergency_list[-1]
+                    latest = emergency_list[0]  # First item is now latest
                     coords = latest['Location'].split(', ')
                     if len(coords) == 2:
                         try:
@@ -304,7 +310,12 @@ while True:
             if obstacle_events:
                 obstacle_list = []
                 counter = 1
-                for key, event in obstacle_events.items():
+                
+                # Convert to list and REVERSE order (latest first)
+                events_items = list(obstacle_events.items())
+                events_items.reverse()
+                
+                for key, event in events_items:
                     obstacle_list.append({
                         'No': counter,
                         'Time': event.get('timestamp', 'N/A'),
@@ -312,6 +323,7 @@ while True:
                         'Sensor 2 (cm)': event.get('sensor2', 0)
                     })
                     counter += 1
+                    
                 df_obstacles = pd.DataFrame(obstacle_list)
                 st.dataframe(df_obstacles, use_container_width=True, height=300)
             else:
@@ -321,13 +333,19 @@ while True:
             if rf_events:
                 rf_list = []
                 counter = 1
-                for key, event in rf_events.items():
+                
+                # Convert to list and REVERSE order (latest first)
+                events_items = list(rf_events.items())
+                events_items.reverse()
+                
+                for key, event in events_items:
                     rf_list.append({
                         'No': counter,
                         'Time': event.get('timestamp', 'N/A'),
                         'Status': event.get('status', 'N/A').upper()
                     })
                     counter += 1
+                    
                 df_rf = pd.DataFrame(rf_list)
                 st.dataframe(df_rf, use_container_width=True, height=300)
             else:

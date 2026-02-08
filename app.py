@@ -298,6 +298,25 @@ while True:
                         try:
                             lat, lon = float(coords[0]), float(coords[1])
                             if lat != 0 and lon != 0:
+                                # Add Google Maps button
+                                google_maps_url = f"https://www.google.com/maps?q={lat},{lon}"
+                                st.markdown(f"""
+                                <a href="{google_maps_url}" target="_blank">
+                                    <button style="
+                                        background-color: #4285f4;
+                                        color: white;
+                                        padding: 10px 20px;
+                                        border: none;
+                                        border-radius: 5px;
+                                        cursor: pointer;
+                                        font-size: 16px;
+                                        margin-bottom: 10px;
+                                    ">
+                                        🗺️ Open in Google Maps
+                                    </button>
+                                </a>
+                                """, unsafe_allow_html=True)
+                                
                                 st.map(pd.DataFrame({'lat': [lat], 'lon': [lon]}), zoom=13)
                             else:
                                 st.warning("⚠️ GPS location not available. Waiting for location data...")

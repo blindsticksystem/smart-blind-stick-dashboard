@@ -52,6 +52,10 @@ st.markdown("""
         margin-bottom: 20px;
         font-weight: bold;
     }
+    /* Hide duplicate metrics */
+    [data-testid="stMetric"]:nth-child(n+4) {
+        display: none !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -372,7 +376,7 @@ while True:
 
         st.markdown("---")
         
-        # ========== STATISTICS ==========
+        # ========== STATISTICS (ONLY ONCE) ==========
         st.subheader("📈 Statistics Summary")
         
         metric_col1, metric_col2, metric_col3 = st.columns(3)
